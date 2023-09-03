@@ -1,228 +1,82 @@
 package config
 
 import (
-	"errors"
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
 	"reflect"
-	"regexp"
-	"strings"
 	"sync/atomic"
-	"unsafe"
-
-	"github.com/fsnotify/fsnotify"
 
 	"github.com/ndsky1003/config/options"
+	"github.com/ndsky1003/config/path"
 )
 
-type LoadFunc func([]byte) (any, error)
+type (
+	LoadFunc[T any] func([]byte) (*T, error)
+)
 
-type config_mgr struct {
-	items     []*load_item
-	opt       *options.Option
-	reWatch   chan struct{}
-	startFlag uint32
+func Stop() {
+	default_config_mgr.stop()
 }
 
-func New(opts ...*options.Option) *config_mgr {
+func Regist[T any](filename string, fn LoadFunc[T], opts ...*options.Option) error {
+	path, err := path.NewPath(filename)
+	if err != nil {
+		return err
+	}
+	default_config_mgr.push_dir(path.Dir())
 	opt := options.New().Merge(opts...)
-	// 默认值
-	if opt.Dirs == nil {
-		opt.Dirs = []string{}
-	}
-	if opt.AutoLoad == nil {
-		a := true
-		opt.AutoLoad = &a
-	}
-	// 默认值
-	c := &config_mgr{
-		opt:     opt,
-		reWatch: make(chan struct{}),
-	}
-	if *opt.AutoLoad {
-		go c.AutoLoad()
-	}
-	return c
-}
-
-type load_item struct {
-	rt     reflect.Type
-	rv     unsafe.Pointer
-	file   string
-	isReg  bool
-	reg    regexp.Regexp
-	dirs   []string
-	f      LoadFunc
-	isAuto bool
-}
-
-type load_reg_item struct {
-	rt     reflect.Type
-	rv     unsafe.Pointer
-	file   string
-	isReg  bool
-	reg    regexp.Regexp
-	dirs   []string
-	f      LoadFunc
-	isAuto bool
-}
-
-func (this *load_item) equal(opt *load_item) bool {
-	if this == nil || opt == nil {
-		return false
-	}
-	if this.rt == opt.rt {
-		return true
-	}
-	return false
-}
-
-func isRegexp(filename string) bool {
-	return strings.HasPrefix(filename, "/") && strings.HasSuffix(filename, "/")
-}
-
-var default_config_mgr = New()
-
-func Regist[T any](filename string, fn LoadFunc, opts ...*options.Option) error {
-	dir, file := filepath.Split(filename)
-	if file == "" {
-		return errors.New("file is invalid")
-	}
-	opt := options.New().Merge(opts...)
-	if dir != "" {
-		opt.SetDir(dir)
-	}
-	if len(opt.Dirs) == 0 {
-		opt.SetDir(default_config_mgr.opt.Dirs...)
-	}
-
 	var a T
-	var rv unsafe.Pointer
 	rt := reflect.TypeOf(a)
-	switch rt.Kind() {
-	case reflect.Map:
-		m := reflect.MakeMap(rt).Interface().(T)
-		rv = unsafe.Pointer(&m)
-	case reflect.Slice:
-		m := reflect.MakeSlice(rt, 0, 0).Interface().(T)
-		rv = unsafe.Pointer(&m)
-	case reflect.Chan:
-		m := reflect.MakeChan(rt, 0).Interface().(T)
-		rv = unsafe.Pointer(&m)
-	case reflect.Pointer:
-		return errors.New("regist must not pointer")
-	case reflect.Func:
-		return errors.New("regist must not func")
-	case reflect.Interface:
-		return errors.New("regist must not Interface")
-	default:
-		rv = unsafe.Pointer(&a)
+	for _, item := range default_config_mgr.items {
+		if item.RT() == rt {
+			return fmt.Errorf("%v exist,please rename", rt.String())
+		}
 	}
-	item := &load_item{
+	item := &load_item[T]{
 		rt:   rt,
-		rv:   rv,
-		file: file,
-		dirs: opt.Dirs,
 		f:    fn,
+		path: path,
+		opt:  opt,
+	}
+	if err = item.load_files(); err != nil {
+		return err
 	}
 	default_config_mgr.items = append(default_config_mgr.items, item)
 	return nil
 }
 
-// 保证*T不为nil
-func Get[T any]() *T {
+// 保证*T不为nil ,找不到就是零值，且map、slice、chan的零值是初始化过的
+// flag 最多只有一个值，不存在的时候，获取的是非正则匹配的时候
+// flag 只有一个值的时候，是正则匹配的提取物的下划线作为连接符号的标志
+// 可变参数，纯粹为了美观
+func Get[T any](flags ...string) T {
+	if len(flags) >= 2 {
+		panic("params  most one")
+	}
+	var flag string
+	if len(flags) == 1 {
+		flag = flags[0]
+	}
 	var a T
 	rt := reflect.TypeOf(a)
 	for _, item := range default_config_mgr.items {
-		if item.rt == rt {
-			return (*T)(atomic.LoadPointer(&item.rv))
+		if item.RT() == rt {
+			for _, item_meta := range item.RVS() {
+				if flag == item_meta.flag {
+					return *(*T)(atomic.LoadPointer(&item_meta.rv))
+				}
+			}
 		}
 	}
 	switch rt.Kind() {
 	case reflect.Map:
 		m := reflect.MakeMap(rt).Interface().(T)
-		return &m
+		return m
 	case reflect.Slice:
 		m := reflect.MakeSlice(rt, 0, 0).Interface().(T)
-		return &m
+		return m
 	case reflect.Chan:
 		m := reflect.MakeChan(rt, 0).Interface().(T)
-		return &m
+		return m
 	}
-	return &a
-}
-
-func (this *config_mgr) loadfile(pathname string) error {
-	// d := m.find(file)
-	// if d == nil {
-	// 	return
-	// }
-
-	// buf, err := os.ReadFile(filename)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// md5sum := md5.Sum(buf)
-	// newMD5 := fmt.Sprintf("%x", md5sum)
-
-	// if newMD5 == d.md5 {
-	// 	logger.Infof("%v 没有变动, 不需要加载\n", file)
-	// 	return
-	// } else {
-	// 	logger.Infof("开始加载：%v\n", file)
-	// }
-	//
-	// err = d.f(buf)
-	//
-	// if err != nil {
-	// 	logger.Err("加载失败", file, err)
-	// } else {
-	// 	logger.Infof("配置%v 加载成功, md5: %v\n", file, newMD5)
-	// 	d.md5 = newMD5
-	// }
-	//
-	return nil
-}
-
-func (this *config_mgr) AutoLoad() {
-	if b := atomic.CompareAndSwapUint32(&(this.startFlag), 0, 1); !b {
-		return
-	}
-	defer func() {
-		fmt.Println("AutoLoad is done")
-	}()
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer watcher.Close()
-here:
-	for _, workdir := range this.opt.Dirs {
-		if _, err = os.Stat(workdir); os.IsNotExist(err) {
-			if err = os.MkdirAll(workdir, 0777); err != nil {
-				fmt.Println("err:", err)
-			}
-		}
-
-		if err = watcher.Add(workdir); err != nil {
-			fmt.Println("add dir err:", err)
-		}
-		fmt.Println("ddd:", workdir)
-	}
-	for {
-		select {
-		case event := <-watcher.Events:
-			if event.Op&fsnotify.Write == fsnotify.Write ||
-				event.Op&fsnotify.Create == fsnotify.Create {
-				fmt.Println("modified file:", event.Name, filepath.IsAbs(event.Name))
-			}
-		case err := <-watcher.Errors:
-			fmt.Println("error:", err)
-		case <-this.reWatch:
-			goto here
-		}
-	}
+	return a
 }
