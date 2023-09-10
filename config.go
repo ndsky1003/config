@@ -1,12 +1,14 @@
+// 该文件的意义，纯粹的就是因为go不支持方法泛型的一个包装
 package config
 
 import (
-	"fmt"
 	"reflect"
 	"sync/atomic"
 
+	"github.com/ndsky1003/config/checker"
 	"github.com/ndsky1003/config/options"
 	"github.com/ndsky1003/config/path"
+	"github.com/ndsky1003/config/watcher"
 )
 
 type (
@@ -14,34 +16,32 @@ type (
 )
 
 func Stop() {
-	default_config_mgr.stop()
+	default_config_mgr.Stop()
 }
 
-func Regist[T any](filename string, fn LoadFunc[T], opts ...*options.Option) error {
-	path, err := path.NewPath(filename)
+func SetChecker(c checker.IChecker) {
+	default_config_mgr.SetChecker(c)
+}
+
+func SetWatcher(w watcher.IWatcher) {
+	default_config_mgr.SetWatcher(w)
+}
+
+func Regist[T any](file_identifier string, fn LoadFunc[T], opts ...*options.Option) error {
+	path, err := path.NewPath(file_identifier)
 	if err != nil {
 		return err
 	}
-	default_config_mgr.push_dir(path.Dir())
 	opt := options.New().Merge(opts...)
 	var a T
 	rt := reflect.TypeOf(a)
-	for _, item := range default_config_mgr.items {
-		if item.RT() == rt {
-			return fmt.Errorf("%v exist,please rename", rt.String())
-		}
-	}
 	item := &load_item[T]{
 		rt:   rt,
 		f:    fn,
 		path: path,
 		opt:  opt,
 	}
-	if err = item.load_files(); err != nil {
-		return err
-	}
-	default_config_mgr.items = append(default_config_mgr.items, item)
-	return nil
+	return default_config_mgr.RegistLoadItem(item)
 }
 
 // 保证*T不为nil ,找不到就是零值，且map、slice、chan的零值是初始化过的
@@ -58,14 +58,8 @@ func Get[T any](flags ...string) T {
 	}
 	var a T
 	rt := reflect.TypeOf(a)
-	for _, item := range default_config_mgr.items {
-		if item.RT() == rt {
-			for _, item_meta := range item.RVS() {
-				if flag == item_meta.flag {
-					return *(*T)(atomic.LoadPointer(&item_meta.rv))
-				}
-			}
-		}
+	if v := default_config_mgr.GetLoadItem(rt, flag); v != nil {
+		return *(*T)(atomic.LoadPointer(&v.rv))
 	}
 	switch rt.Kind() {
 	case reflect.Map:

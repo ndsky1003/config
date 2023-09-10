@@ -19,10 +19,11 @@ func init() {
 }
 
 type Path struct {
-	file  string
-	dir   string
-	isReg bool
-	reg   *regexp.Regexp
+	file_identifier string // 原始字符串，注册时候字面量书写的
+	file            string
+	dir             string
+	isReg           bool
+	reg             *regexp.Regexp
 }
 
 func is_reg(filename string) (b bool, realFilename string) {
@@ -34,21 +35,22 @@ func is_reg(filename string) (b bool, realFilename string) {
 }
 
 // if reg filename startwith reg:
-func NewPath(filename string) (*Path, error) {
-	if filename == "" {
-		return nil, errors.New("filename is empty")
+func NewPath(file_identifier string) (*Path, error) {
+	if file_identifier == "" {
+		return nil, errors.New("file_identifier is empty")
 	}
 	// 最后是有斜杠的
-	dir, file := split(filename)
+	dir, file := split(file_identifier)
 	if file == "" {
 		return nil, errors.New("file is empty")
 	}
 	b, realFilename := is_reg(file)
 
 	c := &Path{
-		file:  realFilename,
-		dir:   dir,
-		isReg: b,
+		file_identifier: file_identifier,
+		file:            realFilename,
+		dir:             dir,
+		isReg:           b,
 	}
 	if b {
 		c.reg = regexp.MustCompile(realFilename)
@@ -63,6 +65,9 @@ func NewPath(filename string) (*Path, error) {
 func (this *Path) Match(delta string) (bool, string) {
 	if delta == "" {
 		return false, ""
+	}
+	if this.file_identifier == delta {
+		return true, ""
 	}
 	tmpdir, tmpfile := split(delta)
 	selfdir := abs_dir(this.dir)
@@ -89,39 +94,16 @@ func (this *Path) File() string {
 	return this.file
 }
 
+func (this *Path) IsReg() bool {
+	return this.isReg
+}
+
 func (this *Path) Dir() string {
 	return this.dir
 }
 
-func (this *Path) List() ([]string, error) {
-	if !this.isReg {
-		return []string{filepath.Join(this.Dir(), this.File())}, nil
-	}
-	dir := this.Dir()
-here:
-	file, err := os.Open(dir)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-		if err = os.MkdirAll(dir, 0777); err != nil {
-			return nil, err
-		} else {
-			goto here
-		}
-	}
-	names, err := file.Readdirnames(0)
-	if err != nil {
-		return nil, err
-	}
-	res := make([]string, 0)
-	for _, file := range names {
-		realPath := filepath.Join(dir, file)
-		if b, _ := this.Match(realPath); b {
-			res = append(res, realPath)
-		}
-	}
-	return res, nil
+func (this *Path) FileIdentifier() string {
+	return this.file_identifier
 }
 
 // join 本身没有斜杠
