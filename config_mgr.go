@@ -1,10 +1,12 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
 	"github.com/ndsky1003/config/checker"
+	"github.com/ndsky1003/config/item"
 	"github.com/ndsky1003/config/watcher"
 )
 
@@ -21,7 +23,7 @@ func init() {
 }
 
 type config_mgr struct {
-	items   []i_load_item
+	items   []item.IItem
 	watcher watcher.IWatcher
 	checker checker.IChecker
 }
@@ -50,12 +52,14 @@ func (this *config_mgr) SetWatcher(w watcher.IWatcher) {
 			fmt.Println("err:", err)
 		}
 	}
-
 	this.watcher = w
-	_ = this.watcher.SetReloadData(this.ReloadData)
+	_ = this.watcher.SetDistributeFunc(this.DistributeData)
 }
 
-func (this *config_mgr) RegistLoadItem(item i_load_item) error {
+func (this *config_mgr) Regist(item item.IItem) error {
+	if this.watcher == nil {
+		return errors.New("watcher is nil")
+	}
 	file_identifier := item.Path().FileIdentifier()
 	for _, v := range this.items {
 		if v.RT() == item.RT() {
@@ -70,26 +74,20 @@ func (this *config_mgr) RegistLoadItem(item i_load_item) error {
 	}
 
 	this.items = append(this.items, item)
-	var err error
-	if item.Path().IsReg() {
-		err = this.watcher.LoadFiles(func(file_identifier1 string) bool {
-			b, _ := item.Match(file_identifier1)
-			return b
-		})
-	} else {
-		err = this.watcher.LoadFile(item.Path().FileIdentifier())
+	if err := this.watcher.Regist(item); err != nil {
+		return err
 	}
-	if err == nil && this.checker != nil {
-		this.checker.On(file_identifier, this.ReloadData)
+	if this.checker != nil {
+		this.checker.On(file_identifier, this.DistributeData)
 	}
-	return err
+	return nil
 }
 
-func (this *config_mgr) GetLoadItem(rt reflect.Type, flag string) *load_item_meta {
+func (this *config_mgr) GetLoadItem(rt reflect.Type, flag string) *item.ItemValue {
 	for _, item := range this.items {
 		if item.RT() == rt {
 			for _, item_meta := range item.RVS() {
-				if flag == item_meta.flag {
+				if flag == item_meta.Flag {
 					return item_meta
 				}
 			}
@@ -99,7 +97,8 @@ func (this *config_mgr) GetLoadItem(rt reflect.Type, flag string) *load_item_met
 }
 
 // MARK check 也可注入该方法检查，成功才会替换
-func (this *config_mgr) ReloadData(file_identifier string, buf []byte) error {
+func (this *config_mgr) DistributeData(file_identifier string, buf []byte) error {
+	fmt.Println(file_identifier, string(buf))
 	for _, item := range this.items {
 		if b, _ := item.Match(file_identifier); b {
 			if err := item.LoadFile(file_identifier, buf); err != nil {

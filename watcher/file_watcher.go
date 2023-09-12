@@ -8,13 +8,15 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+
+	"github.com/ndsky1003/config/item"
 )
 
 // 默认文件监视器
 type file_watcher struct {
-	Dir         string
-	done        chan struct{}
-	dispense_fn func(file_identifier string, buf []byte) error
+	Dir             string
+	done            chan struct{}
+	distribute_func func(file_identifier string, buf []byte) error
 }
 
 func NewFileWatcher(dir string) (*file_watcher, error) {
@@ -47,12 +49,26 @@ func (this *file_watcher) Stop() error {
 	return nil
 }
 
-func (this *file_watcher) SetReloadData(f func(file_identifier string, buf []byte) error) error {
-	this.dispense_fn = f
+func (this *file_watcher) SetDistributeFunc(
+	f func(file_identifier string, buf []byte) error,
+) error {
+	this.distribute_func = f
 	return nil
 }
 
-func (this *file_watcher) LoadFile(file_identifier string) error {
+func (this *file_watcher) Regist(item item.IItem) (err error) {
+	if item.Path().IsReg() {
+		err = this.load_files(func(file_identifier1 string) bool {
+			b, _ := item.Match(file_identifier1)
+			return b
+		})
+	} else {
+		err = this.load_file(item.Path().FileIdentifier())
+	}
+	return
+}
+
+func (this *file_watcher) load_file(file_identifier string) error {
 	buf, err := os.ReadFile(file_identifier)
 	if err != nil {
 		return err
@@ -60,10 +76,10 @@ func (this *file_watcher) LoadFile(file_identifier string) error {
 	if len(buf) == 0 {
 		return errors.New("buf is nil")
 	}
-	return this.dispense_fn(file_identifier, buf)
+	return this.distribute_func(file_identifier, buf)
 }
 
-func (this *file_watcher) LoadFiles(fn func(file_identifier string) bool) error {
+func (this *file_watcher) load_files(fn func(file_identifier string) bool) error {
 	dir := this.Dir
 	file, err := os.Open(dir)
 	if err != nil {
@@ -76,7 +92,7 @@ func (this *file_watcher) LoadFiles(fn func(file_identifier string) bool) error 
 	for _, file := range names {
 		realPath := filepath.Join(dir, file)
 		if fn(realPath) {
-			if err := this.LoadFile(realPath); err != nil {
+			if err := this.load_file(realPath); err != nil {
 				return err
 			}
 		}
@@ -117,7 +133,7 @@ func (this *file_watcher) auto_load() {
 			if event.Op&fsnotify.Write == fsnotify.Write ||
 				event.Op&fsnotify.Create == fsnotify.Create {
 				fmt.Println("loadFile:", event.Name)
-				if err := this.LoadFile(event.Name); err != nil {
+				if err := this.load_file(event.Name); err != nil {
 					fmt.Printf("loadfile:err:%v\n", err)
 				}
 			}

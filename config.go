@@ -6,13 +6,10 @@ import (
 	"sync/atomic"
 
 	"github.com/ndsky1003/config/checker"
+	"github.com/ndsky1003/config/item"
 	"github.com/ndsky1003/config/options"
 	"github.com/ndsky1003/config/path"
 	"github.com/ndsky1003/config/watcher"
-)
-
-type (
-	LoadFunc[T any] func([]byte) (*T, error)
 )
 
 func Stop() {
@@ -27,7 +24,7 @@ func SetWatcher(w watcher.IWatcher) {
 	default_config_mgr.SetWatcher(w)
 }
 
-func Regist[T any](file_identifier string, fn LoadFunc[T], opts ...*options.Option) error {
+func Regist[T any](file_identifier string, fn item.LoadFunc[T], opts ...*options.Option) error {
 	path, err := path.NewPath(file_identifier)
 	if err != nil {
 		return err
@@ -35,13 +32,13 @@ func Regist[T any](file_identifier string, fn LoadFunc[T], opts ...*options.Opti
 	opt := options.New().Merge(opts...)
 	var a T
 	rt := reflect.TypeOf(a)
-	item := &load_item[T]{
-		rt:   rt,
-		f:    fn,
-		path: path,
-		opt:  opt,
+	item := &item.Item[T]{
+		T:   rt,
+		F:   fn,
+		P:   path,
+		Opt: opt,
 	}
-	return default_config_mgr.RegistLoadItem(item)
+	return default_config_mgr.Regist(item)
 }
 
 // 保证*T不为nil ,找不到就是零值，且map、slice、chan的零值是初始化过的
@@ -59,7 +56,7 @@ func Get[T any](flags ...string) T {
 	var a T
 	rt := reflect.TypeOf(a)
 	if v := default_config_mgr.GetLoadItem(rt, flag); v != nil {
-		return *(*T)(atomic.LoadPointer(&v.rv))
+		return *(*T)(atomic.LoadPointer(&v.V))
 	}
 	switch rt.Kind() {
 	case reflect.Map:
