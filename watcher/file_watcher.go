@@ -45,7 +45,7 @@ func (this *file_watcher) Stop() error {
 	if this.done != nil {
 		close(this.done)
 	}
-	this.done = nil
+	// this.done = nil
 	return nil
 }
 
@@ -103,11 +103,12 @@ func (this *file_watcher) load_files(fn func(file_identifier string) bool) error
 
 func (this *file_watcher) protect_run() {
 	defer fmt.Println("config_mgr exit")
+here:
 	for {
 		this.auto_load()
 		select {
 		case <-this.done:
-			break
+			break here
 		default:
 		}
 	}
