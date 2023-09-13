@@ -7,11 +7,12 @@ import (
 )
 
 func TestPath(t *testing.T) {
-	path, err := NewPath("/Users/ppll/go/workSpace/self-pkg/config/path/path.go")
+	path, err := NewPath("reg:db_vip_([a-z]{3})_([a-z]{3}).yaml")
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(path.Match("./path.go"))
+	fmt.Println(path.Match("db_vip_bob_dod.yaml"))
+	fmt.Println(path.Flag("db_vip_bob_dod.yaml"), "dddd")
 }
 
 func TestABSDir(t *testing.T) {

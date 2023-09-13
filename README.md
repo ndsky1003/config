@@ -32,5 +32,14 @@ v4 is data
 
 ```
 
+
+```go
+//包装现有的cfgmgr
+	if err := config.Regist[ConfigVip]("reg:db_vip_([a-z]{3})_([a-z]{3}).yaml", loadConfigVip); err != nil {
+		logger.Err(err)
+	}
+
+```
+
 #### TODO
 找个合适的日志库
