@@ -99,12 +99,14 @@ func (this *config_mgr) GetLoadItem(rt reflect.Type, flag string) *item.ItemValu
 // MARK check 也可注入该方法检查，成功才会替换
 func (this *config_mgr) DistributeData(file_identifier string, buf []byte) error {
 	fmt.Println(file_identifier, string(buf))
+	var err error
 	for _, item := range this.items {
 		if b, _ := item.Match(file_identifier); b {
-			if err := item.LoadFile(file_identifier, buf); err != nil {
+			if err1 := item.LoadFile(file_identifier, buf); err1 != nil {
+				err = err1
 				continue
 			}
 		}
 	}
-	return nil
+	return err
 }
