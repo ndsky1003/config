@@ -2,6 +2,7 @@ package path
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -23,5 +24,11 @@ func TestABSDir(t *testing.T) {
 }
 
 func TestSplite(t *testing.T) {
-	fmt.Println(split("../cc/path.go"))
+	pwd, err := os.Getwd()
+	t.Error(err)
+	t.Log(pwd)
+	t.Log(filepath.IsAbs(pwd))
+	t.Log(EqualDir("./", "."))
+	t.Log(EqualDir("./", pwd))
+	t.Log(EqualDir(pwd, "."))
 }

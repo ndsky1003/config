@@ -10,12 +10,10 @@ import (
 	"github.com/ndsky1003/config/watcher"
 )
 
-const dir = "config"
-
 var default_config_mgr *config_mgr
 
 func init() {
-	default_file_watcher, err := watcher.NewFileWatcher(dir)
+	default_file_watcher, err := watcher.NewFileWatcher()
 	if err != nil {
 		panic(err)
 	}

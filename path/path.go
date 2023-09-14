@@ -2,6 +2,7 @@ package path
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -106,10 +107,21 @@ func (this *Path) FileIdentifier() string {
 	return this.file_identifier
 }
 
+func EqualDir(dir1, dir2 string) bool {
+	if dir1 == dir2 {
+		return true
+	}
+	return abs_dir(dir1) == abs_dir(dir2)
+}
+
 // join 本身没有斜杠
 func abs_dir(dir string) string {
 	if !filepath.IsAbs(dir) {
-		return filepath.Join(Pwd, dir) + "/"
+		return fmt.Sprintf("%s%c", filepath.Join(Pwd, dir), filepath.Separator)
+	} else {
+		if !strings.HasSuffix(dir, "/") {
+			return fmt.Sprintf("%s%c", dir, filepath.Separator)
+		}
 	}
 	return dir
 }
