@@ -21,6 +21,7 @@ type IItem interface {
 	Path() *path.Path
 	RT() reflect.Type
 	RVS() []*ItemValue
+	CheckBuf([]byte) error // buf检查
 }
 
 type Item[T any] struct {
@@ -51,6 +52,11 @@ func (this *Item[T]) Match(pathname string) (bool, string) {
 
 func (this *Item[T]) Path() *path.Path {
 	return this.P
+}
+
+func (this *Item[T]) CheckBuf(buf []byte) error {
+	_, err := this.F(buf)
+	return err
 }
 
 func (this *Item[T]) LoadFile(file_identifier string, buf []byte) error {

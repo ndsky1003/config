@@ -76,7 +76,7 @@ func (this *config_mgr) Regist(item item.IItem) error {
 		return err
 	}
 	if this.checker != nil {
-		this.checker.On(file_identifier, this.DistributeData)
+		this.checker.On(file_identifier, item.CheckBuf)
 	}
 	return nil
 }
