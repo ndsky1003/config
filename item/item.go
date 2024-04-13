@@ -22,6 +22,7 @@ type IItem interface {
 	RT() reflect.Type
 	RVS() []*ItemValue
 	CheckBuf([]byte) error // buf检查
+	Opts() *options.Option
 }
 
 type Item[T any] struct {
@@ -57,6 +58,10 @@ func (this *Item[T]) Path() *path.Path {
 func (this *Item[T]) CheckBuf(buf []byte) error {
 	_, err := this.F(buf)
 	return err
+}
+
+func (this *Item[T]) Opts() *options.Option {
+	return this.Opt
 }
 
 func (this *Item[T]) LoadFile(file_identifier string, buf []byte) error {

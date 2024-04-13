@@ -76,7 +76,13 @@ func (this *config_mgr) Regist(item item.IItem) error {
 		return err
 	}
 	if this.checker != nil {
-		this.checker.On(file_identifier, item.CheckBuf)
+		i := file_identifier
+		if item.Opts() != nil &&
+			item.Opts().CheckerIdentifier != nil &&
+			*(item.Opts().CheckerIdentifier) != "" {
+			i = *(item.Opts().CheckerIdentifier)
+		}
+		this.checker.On(i, item.CheckBuf)
 	}
 	return nil
 }
