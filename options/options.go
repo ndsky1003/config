@@ -10,7 +10,7 @@ func New() *Option {
 	return &Option{}
 }
 
-func (this *Option) SetWatcherIdentifier(s string) *Option {
+func (this *Option) SetCheckerIdentifier(s string) *Option {
 	this.CheckerIdentifier = &s
 	return this
 }
