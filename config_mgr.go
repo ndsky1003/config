@@ -21,9 +21,10 @@ func init() {
 }
 
 type config_mgr struct {
-	items   []item.IItem
-	watcher watcher.IWatcher
-	checker checker.IChecker
+	items                   []item.IItem
+	watcher                 watcher.IWatcher
+	checker                 checker.IChecker
+	checker_identifier_func func(string) string
 }
 
 func New(watcher watcher.IWatcher) *config_mgr {
@@ -42,6 +43,9 @@ func (this *config_mgr) Stop() {
 
 func (this *config_mgr) SetChecker(c checker.IChecker) {
 	this.checker = c
+}
+func (this *config_mgr) SetCheckerIdentifierFunc(f func(string) string) {
+	this.checker_identifier_func = f
 }
 
 func (this *config_mgr) SetWatcher(w watcher.IWatcher) {
@@ -81,6 +85,9 @@ func (this *config_mgr) Regist(item item.IItem) error {
 			item.Opts().CheckerIdentifier != nil &&
 			*(item.Opts().CheckerIdentifier) != "" {
 			i = *(item.Opts().CheckerIdentifier)
+		}
+		if this.checker_identifier_func != nil {
+			i = this.checker_identifier_func(i)
 		}
 		this.checker.On(i, item.CheckBuf)
 	}
