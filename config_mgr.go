@@ -82,13 +82,15 @@ func (this *config_mgr) Regist(item item.IItem) error {
 	}
 	if this.checker != nil {
 		i := file_identifier
+		//设置替换
+		if this.checker_identifier_func != nil {
+			i = this.checker_identifier_func(i)
+		}
+		// 每个item都有自己的检测标识,设置自己的替换
 		if item.Opts() != nil &&
 			item.Opts().CheckerIdentifier != nil &&
 			*(item.Opts().CheckerIdentifier) != "" {
 			i = *(item.Opts().CheckerIdentifier)
-		}
-		if this.checker_identifier_func != nil {
-			i = this.checker_identifier_func(i)
 		}
 		this.checker.On(i, item.CheckBuf)
 	}

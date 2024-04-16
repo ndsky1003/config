@@ -24,14 +24,14 @@ func (this *Person) String() string {
 }
 
 func TestMain(m *testing.M) {
-	if err := Regist[map[string]any]("./config/cc1.json", load); err != nil {
+	if err := Regist("./config/cc1.json", load); err != nil {
 		panic(err)
 	}
-	if err := Regist[SM]("./config2/cc1.json", load2); err != nil {
+	if err := Regist("./config2/cc1.json", load2); err != nil {
 		panic(err)
 	}
 
-	if err := Regist[[]*Person]("./config9/reg:person_([a-z]{3})_\\d*.yaml", load3); err != nil {
+	if err := Regist("./config9/reg:person_([a-z]{3})_\\d*.yaml", load3); err != nil {
 		panic(err)
 	}
 	m.Run()
