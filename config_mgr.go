@@ -44,6 +44,7 @@ func (this *config_mgr) Stop() {
 func (this *config_mgr) SetChecker(c checker.IChecker) {
 	this.checker = c
 }
+
 func (this *config_mgr) SetCheckerIdentifierFunc(f func(string) string) {
 	this.checker_identifier_func = f
 }
