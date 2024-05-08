@@ -83,11 +83,16 @@ func (this *Path) Match(delta string) (bool, string) {
 	}
 }
 
-func (this *Path) Flag(filename string) string {
+func (this *Path) Flag(filename string) (submatch []string, flag string) {
 	if this.isReg {
-		return strings.Join(this.reg.FindStringSubmatch(filename)[1:], "_")
+		submatch = this.reg.FindStringSubmatch(filename)
+		var flag string
+		if len(submatch) > 0 {
+			flag = strings.Join(submatch[1:], "_")
+		}
+		return submatch, flag
 	} else {
-		return ""
+		return nil, ""
 	}
 }
 

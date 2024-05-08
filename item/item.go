@@ -2,6 +2,7 @@ package item
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -12,7 +13,8 @@ import (
 )
 
 type (
-	LoadFunc[T any] func([]byte) (*T, error)
+	LoadFunc[T any]    func([]byte) (*T, error)
+	LoadRegFunc[T any] func([]string, []byte) (*T, error)
 )
 
 type IItem interface {
@@ -26,11 +28,12 @@ type IItem interface {
 }
 
 type Item[T any] struct {
-	T   reflect.Type
-	VS  []*ItemValue
-	F   LoadFunc[T]
-	P   *path.Path
-	Opt *options.Option
+	T     reflect.Type
+	VS    []*ItemValue
+	F     LoadFunc[T]    //这个也支持正则,只是不支持加载函数无法探测处flag
+	F_reg LoadRegFunc[T] //与 F,二选一
+	P     *path.Path
+	Opt   *options.Option
 }
 
 type ItemValue struct {
@@ -56,7 +59,8 @@ func (this *Item[T]) Path() *path.Path {
 }
 
 func (this *Item[T]) CheckBuf(buf []byte) error {
-	_, err := this.F(buf)
+	// _, err := this.F(buf)
+	_, err := this.call_F([]string{}, buf)
 	return err
 }
 
@@ -64,9 +68,19 @@ func (this *Item[T]) Opts() *options.Option {
 	return this.Opt
 }
 
+func (this *Item[T]) call_F(submath []string, buf []byte) (*T, error) {
+	if this.F != nil {
+		return this.F(buf)
+	} else if this.F_reg != nil {
+		return this.F_reg(submath, buf)
+	}
+	return nil, errors.New("no load func")
+
+}
+
 func (this *Item[T]) LoadFile(file_identifier string, buf []byte) error {
 	filename := filepath.Base(file_identifier)
-	flag := this.P.Flag(filename)
+	submatch, flag := this.P.Flag(filename)
 	md5sum := md5.Sum(buf)
 	newMD5 := fmt.Sprintf("%x", md5sum)
 
@@ -88,7 +102,8 @@ func (this *Item[T]) LoadFile(file_identifier string, buf []byte) error {
 		return nil
 	}
 	fmt.Printf("开始加载：%v\n", file_identifier)
-	pv, err := this.F(buf)
+	// pv, err := this.F(buf)
+	pv, err := this.call_F(submatch, buf)
 	if err != nil {
 		fmt.Printf("加载失败:%v,%v\n", file_identifier, err)
 		return err

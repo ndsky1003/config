@@ -37,10 +37,29 @@ func Regist[T any](file_identifier string, fn item.LoadFunc[T], opts ...*options
 	var a T
 	rt := reflect.TypeOf(a)
 	item := &item.Item[T]{
-		T:   rt,
-		F:   fn,
-		P:   path,
-		Opt: opt,
+		T:     rt,
+		F:     fn,
+		F_reg: nil,
+		P:     path,
+		Opt:   opt,
+	}
+	return default_config_mgr.Regist(item)
+}
+
+func RegistByRegFunc[T any](file_identifier string, fn item.LoadRegFunc[T], opts ...*options.Option) error {
+	path, err := path.NewPath(file_identifier)
+	if err != nil {
+		return err
+	}
+	opt := options.New().Merge(opts...)
+	var a T
+	rt := reflect.TypeOf(a)
+	item := &item.Item[T]{
+		T:     rt,
+		F:     nil,
+		F_reg: fn,
+		P:     path,
+		Opt:   opt,
 	}
 	return default_config_mgr.Regist(item)
 }

@@ -13,7 +13,8 @@ func TestPath(t *testing.T) {
 		t.Error(err)
 	}
 	fmt.Println(path.Match("db_vip_bob_dod.yaml"))
-	fmt.Println(path.Flag("db_vip_bob_dod.yaml"), "dddd")
+	v, f := path.Flag("db_vip_bob_dod.yaml")
+	fmt.Println(v, f)
 }
 
 func TestABSDir(t *testing.T) {
