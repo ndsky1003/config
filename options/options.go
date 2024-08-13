@@ -3,8 +3,8 @@ package options
 type Option struct {
 	Len               *int
 	Cap               *int
-	CheckerIdentifier *string //检测的标识可能需要随机兼容,所以自定义,不存在的话使用file_identifier
-	SuccessFunc       *func() //检测成功的回调,因为加载的那个回调会调用2次,一次检测,一次加载，所以需要回调
+	CheckerIdentifier *string    //检测的标识可能需要随机兼容,所以自定义,不存在的话使用file_identifier
+	SuccessFunc       *func(any) //检测成功的回调,因为加载的那个回调会调用2次,一次检测,一次加载，所以需要回调
 }
 
 func New() *Option {
@@ -26,7 +26,7 @@ func (this *Option) SetCap(i int) *Option {
 	return this
 }
 
-func (this *Option) SetSuccessFunc(Func func()) *Option {
+func (this *Option) SetSuccessFunc(Func func(any)) *Option {
 	this.SuccessFunc = &Func
 	return this
 }

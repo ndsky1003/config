@@ -108,6 +108,9 @@ func (this *Item[T]) LoadFile(file_identifier string, buf []byte) error {
 		fmt.Printf("加载失败:%v,%v\n", file_identifier, err)
 		return err
 	}
+	if opt := this.Opts(); opt != nil && opt.SuccessFunc != nil {
+		(*opt.SuccessFunc)(pv)
+	}
 	fmt.Printf("配置%v 加载成功, md5: %v\n", file_identifier, newMD5)
 	if need_append {
 		this.VS = append(this.VS, tmp_rv_meta)
