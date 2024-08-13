@@ -119,6 +119,9 @@ func (this *config_mgr) DistributeData(file_identifier string, buf []byte) error
 				err = err1
 				continue
 			}
+			if opt := item.Opts(); opt != nil && opt.SuccessFunc != nil {
+				(*opt.SuccessFunc)()
+			}
 		}
 	}
 	return err
