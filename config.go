@@ -28,12 +28,12 @@ func SetWatcher(w watcher.IWatcher) {
 	default_config_mgr.SetWatcher(w)
 }
 
-func Regist[T any](file_identifier string, fn item.LoadFunc[T], opts ...*options.Option) error {
+func Regist[T any](file_identifier string, fn item.LoadFunc[T], opts ...*options.Option[T]) error {
 	path, err := path.NewPath(file_identifier)
 	if err != nil {
 		return err
 	}
-	opt := options.New().Merge(opts...)
+	opt := options.New[T]().Merge(opts...)
 	var a T
 	rt := reflect.TypeOf(a)
 	item := &item.Item[T]{
@@ -46,12 +46,12 @@ func Regist[T any](file_identifier string, fn item.LoadFunc[T], opts ...*options
 	return default_config_mgr.Regist(item)
 }
 
-func RegistByRegFunc[T any](file_identifier string, fn item.LoadRegFunc[T], opts ...*options.Option) error {
+func RegistByRegFunc[T any](file_identifier string, fn item.LoadRegFunc[T], opts ...*options.Option[T]) error {
 	path, err := path.NewPath(file_identifier)
 	if err != nil {
 		return err
 	}
-	opt := options.New().Merge(opts...)
+	opt := options.New[T]().Merge(opts...)
 	var a T
 	rt := reflect.TypeOf(a)
 	item := &item.Item[T]{
