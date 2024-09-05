@@ -17,14 +17,14 @@ type (
 	LoadRegFunc[T any] func([]string, []byte) (*T, error)
 )
 
-type IItem[T any] interface {
+type IItem interface {
 	Match(pathname string) (bool, string)
 	LoadFile(pathname string, buf []byte) error
 	Path() *path.Path
 	RT() reflect.Type
 	RVS() []*ItemValue
 	CheckBuf([]byte) error // buf检查
-	Opts() *options.Option[T]
+	Opts() *options.Option
 }
 
 type Item[T any] struct {
@@ -33,7 +33,7 @@ type Item[T any] struct {
 	F     LoadFunc[T]    //这个也支持正则,只是不支持加载函数无法探测处flag
 	F_reg LoadRegFunc[T] //与 F,二选一
 	P     *path.Path
-	Opt   *options.Option[T]
+	Opt   *options.Option
 }
 
 type ItemValue struct {
@@ -64,7 +64,7 @@ func (this *Item[T]) CheckBuf(buf []byte) error {
 	return err
 }
 
-func (this *Item[T]) Opts() *options.Option[T] {
+func (this *Item[T]) Opts() *options.Option {
 	return this.Opt
 }
 
