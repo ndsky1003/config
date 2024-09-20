@@ -9,16 +9,16 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/ndsky1003/config/item"
-	"github.com/ndsky1003/config/path"
+	"github.com/ndsky1003/config/v2/item"
+	"github.com/ndsky1003/config/v2/path"
 )
 
 // 默认文件监视器
 type file_watcher struct {
-	Dirs            []string
-	dirChan         chan string
-	done            chan struct{}
-	distribute_func func(file_identifier string, buf []byte) error
+	Dirs        []string
+	dirChan     chan string
+	done        chan struct{}
+	distributer IDistributer
 }
 
 func NewFileWatcher() (*file_watcher, error) {
@@ -60,10 +60,8 @@ func (this *file_watcher) Stop() error {
 	return nil
 }
 
-func (this *file_watcher) SetDistributeFunc(
-	f func(file_identifier string, buf []byte) error,
-) error {
-	this.distribute_func = f
+func (this *file_watcher) SetDistributeFunc(o IDistributer) error {
+	this.distributer = o
 	return nil
 }
 
@@ -92,7 +90,7 @@ func (this *file_watcher) load_file(file_identifier string) error {
 	if len(buf) == 0 {
 		return errors.New("buf is nil")
 	}
-	return this.distribute_func(file_identifier, buf)
+	return this.distributer.Distribute(file_identifier, buf)
 }
 
 func (this *file_watcher) load_files(dir string, fn func(file_identifier string) bool) error {

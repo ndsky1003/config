@@ -1,10 +1,11 @@
 package options
 
+// 之所以全部用指针,是因为不确定是否零值是否需要被使用
 type Option struct {
 	Len               *int
 	Cap               *int
-	CheckerIdentifier *string    //检测的标识可能需要随机兼容,所以自定义,不存在的话使用file_identifier
-	SuccessFunc       *func(any) //检测成功的回调,因为加载的那个回调会调用2次,一次检测,一次加载，所以需要回调
+	CheckerIdentifier *string             //检测的标识可能需要随机兼容,所以自定义,不存在的话使用file_identifier
+	CheckerFunc       *func([]byte) error //注入一个检查器,优先使用这个,次要使用默认load函数
 }
 
 func New() *Option {
@@ -26,8 +27,8 @@ func (this *Option) SetCap(i int) *Option {
 	return this
 }
 
-func (this *Option) SetSuccessFunc(Func func(any)) *Option {
-	this.SuccessFunc = &Func
+func (this *Option) SetCheckerFunc(Func func([]byte) error) *Option {
+	this.CheckerFunc = &Func
 	return this
 }
 
@@ -49,8 +50,8 @@ func (this *Option) merge(opt *Option) {
 		this.CheckerIdentifier = opt.CheckerIdentifier
 	}
 
-	if opt.SuccessFunc != nil {
-		this.SuccessFunc = opt.SuccessFunc
+	if opt.CheckerFunc != nil {
+		this.CheckerFunc = opt.CheckerFunc
 	}
 
 }

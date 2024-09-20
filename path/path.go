@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-var Pwd string
+var pwd string
 
 func init() {
 	var err error
-	Pwd, err = os.Getwd()
+	pwd, err = os.Getwd()
 	if err != nil {
 		panic(err)
 	}
@@ -27,16 +27,16 @@ type Path struct {
 	reg             *regexp.Regexp
 }
 
-func is_reg(filename string) (b bool, realFilename string) {
-	realFilename = filename
-	if b = strings.HasPrefix(filename, "reg:"); b {
-		realFilename = realFilename[4:]
-	}
-	return
-}
+// func is_reg(filename string) (b bool, realFilename string) {
+// 	realFilename = filename
+// 	if b = strings.HasPrefix(filename, "reg:"); b {
+// 		realFilename = realFilename[4:]
+// 	}
+// 	return
+// }
 
 // if reg filename startwith reg:
-func NewPath(file_identifier string) (*Path, error) {
+func New(file_identifier string, isReg bool) (*Path, error) {
 	if file_identifier == "" {
 		return nil, errors.New("file_identifier is empty")
 	}
@@ -45,16 +45,16 @@ func NewPath(file_identifier string) (*Path, error) {
 	if file == "" {
 		return nil, errors.New("file is empty")
 	}
-	b, realFilename := is_reg(file)
+	// b, realFilename := is_reg(file)
 
 	c := &Path{
 		file_identifier: file_identifier,
-		file:            realFilename,
+		file:            file,
 		dir:             dir,
-		isReg:           b,
+		isReg:           isReg,
 	}
-	if b {
-		c.reg = regexp.MustCompile(realFilename)
+	if isReg {
+		c.reg = regexp.MustCompile(file)
 	}
 	return c, nil
 }
@@ -122,7 +122,7 @@ func EqualDir(dir1, dir2 string) bool {
 // join 本身没有斜杠
 func abs_dir(dir string) string {
 	if !filepath.IsAbs(dir) {
-		return fmt.Sprintf("%s%c", filepath.Join(Pwd, dir), filepath.Separator)
+		return fmt.Sprintf("%s%c", filepath.Join(pwd, dir), filepath.Separator)
 	} else {
 		if !strings.HasSuffix(dir, "/") {
 			return fmt.Sprintf("%s%c", dir, filepath.Separator)

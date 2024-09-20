@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"sync/atomic"
 	"unsafe"
 
-	"github.com/ndsky1003/config/options"
-	"github.com/ndsky1003/config/path"
+	"github.com/ndsky1003/config/v2/options"
+	"github.com/ndsky1003/config/v2/path"
 )
 
 type (
@@ -59,7 +60,9 @@ func (this *Item[T]) Path() *path.Path {
 }
 
 func (this *Item[T]) CheckBuf(buf []byte) error {
-	// _, err := this.F(buf)
+	if f := this.Opts().CheckerFunc; f != nil {
+		return (*f)(buf)
+	}
 	_, err := this.call_F([]string{}, buf)
 	return err
 }
@@ -102,20 +105,17 @@ func (this *Item[T]) LoadFile(file_identifier string, buf []byte) error {
 		return nil
 	}
 	fmt.Printf("开始加载：%v\n", file_identifier)
-	// pv, err := this.F(buf)
 	pv, err := this.call_F(submatch, buf)
 	if err != nil {
 		fmt.Printf("加载失败:%v,%v\n", file_identifier, err)
 		return err
 	}
-	if opt := this.Opts(); opt != nil && opt.SuccessFunc != nil {
-		(*opt.SuccessFunc)(pv)
-	}
 	fmt.Printf("配置%v 加载成功, md5: %v\n", file_identifier, newMD5)
 	if need_append {
 		this.VS = append(this.VS, tmp_rv_meta)
 	}
-	tmp_rv_meta.V = reflect.ValueOf(pv).UnsafePointer()
+	// tmp_rv_meta.V = reflect.ValueOf(pv).UnsafePointer()
+	atomic.StorePointer(&tmp_rv_meta.V, unsafe.Pointer(pv))
 	tmp_rv_meta.MD5 = newMD5
 	return nil
 }

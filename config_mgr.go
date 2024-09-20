@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ndsky1003/config/checker"
-	"github.com/ndsky1003/config/item"
-	"github.com/ndsky1003/config/watcher"
+	"github.com/ndsky1003/config/v2/checker"
+	"github.com/ndsky1003/config/v2/item"
+	"github.com/ndsky1003/config/v2/watcher"
 )
 
 var default_config_mgr *config_mgr
@@ -21,15 +21,17 @@ func init() {
 }
 
 type config_mgr struct {
-	items                   []item.IItem
-	watcher                 watcher.IWatcher
-	checker                 checker.IChecker
-	checker_identifier_func func(string) string
+	items                  []item.IItem
+	watcher                watcher.IWatcher
+	checker                checker.IChecker
+	gen_checker_identifier func(string) string
 }
 
 func New(watcher watcher.IWatcher) *config_mgr {
 	c := &config_mgr{}
-	c.SetWatcher(watcher)
+	if err := c.SetWatcher(watcher); err != nil {
+		panic(err)
+	}
 	return c
 }
 
@@ -46,17 +48,17 @@ func (this *config_mgr) SetChecker(c checker.IChecker) {
 }
 
 func (this *config_mgr) SetCheckerIdentifierFunc(f func(string) string) {
-	this.checker_identifier_func = f
+	this.gen_checker_identifier = f
 }
 
-func (this *config_mgr) SetWatcher(w watcher.IWatcher) {
+func (this *config_mgr) SetWatcher(w watcher.IWatcher) error {
 	if this.watcher != nil {
 		if err := this.watcher.Stop(); err != nil {
 			fmt.Println("err:", err)
 		}
 	}
 	this.watcher = w
-	_ = this.watcher.SetDistributeFunc(this.DistributeData)
+	return this.watcher.SetDistributeFunc(this)
 }
 
 func (this *config_mgr) Regist(item item.IItem) error {
@@ -83,8 +85,8 @@ func (this *config_mgr) Regist(item item.IItem) error {
 	if this.checker != nil {
 		i := file_identifier
 		//设置替换
-		if this.checker_identifier_func != nil {
-			i = this.checker_identifier_func(i)
+		if this.gen_checker_identifier != nil {
+			i = this.gen_checker_identifier(i)
 		}
 		// 每个item都有自己的检测标识,设置自己的替换
 		if item.Opts() != nil &&
@@ -92,7 +94,7 @@ func (this *config_mgr) Regist(item item.IItem) error {
 			*(item.Opts().CheckerIdentifier) != "" {
 			i = *(item.Opts().CheckerIdentifier)
 		}
-		this.checker.On(i, item.CheckBuf)
+		this.checker.Regist(i, item.CheckBuf)
 	}
 	return nil
 }
@@ -110,8 +112,8 @@ func (this *config_mgr) GetLoadItem(rt reflect.Type, flag string) *item.ItemValu
 	return nil
 }
 
-// MARK check 也可注入该方法检查，成功才会替换
-func (this *config_mgr) DistributeData(file_identifier string, buf []byte) error {
+// 数据会从这里分发出来
+func (this *config_mgr) Distribute(file_identifier string, buf []byte) error {
 	var err error
 	for _, item := range this.items {
 		if b, _ := item.Match(file_identifier); b {

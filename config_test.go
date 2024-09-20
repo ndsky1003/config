@@ -14,7 +14,8 @@ type (
 )
 
 type Person struct {
-	Name string `json:"Name"`
+	Name string `json:"name"`
+	Age  int    `json:"age"`
 }
 
 func (this *Person) String() string {
@@ -22,14 +23,14 @@ func (this *Person) String() string {
 }
 
 func TestMain(m *testing.M) {
-	// if err := Regist("./config/cc1.json", load); err != nil {
-	// 	panic(err)
-	// }
+	if err := Regist("config/person.json", load); err != nil {
+		panic(err)
+	}
 	// if err := Regist("./config/cc1.json", load2); err != nil {
 	// 	panic(err)
 	// }
-
-	if err := RegistByRegFunc("./config/reg:person_([a-z]{3})_\\d*.json", load3); err != nil {
+	//
+	if err := RegistByRegFunc("./config/person_([a-z]{3,10})_\\d*.json", load3); err != nil {
 		panic(err)
 	}
 	m.Run()
@@ -48,7 +49,7 @@ func load3(math []string, buf []byte) (*Person, error) {
 func Test_Pserson(t *testing.T) {
 	for {
 		time.Sleep(1e9)
-		v := Get[Person]("aaa")
+		v := Get[Person]("nihao")
 		fmt.Printf("vvv:%+v\n", v)
 		// v1 := Get[[]*Person]()
 		// fmt.Printf("vvv:%+v\n", v1)
@@ -61,14 +62,14 @@ func Test_Pserson(t *testing.T) {
 
 func Test_nomal(t *testing.T) {
 	time.Sleep(2e9)
-	v := Get[map[string]any]()
+	v := GetRef[[]*Person]()
 	t.Log("./config/cc1.json:", v)
 	v1 := Get[SM]()
 	t.Logf("=================:%+v\n", v1)
 }
 
-func load(buf []byte) (*map[string]any, error) {
-	var a map[string]any
+func load(buf []byte) (*[]*Person, error) {
+	var a []*Person
 	if err := json.Unmarshal(buf, &a); err != nil {
 		return nil, err
 	}

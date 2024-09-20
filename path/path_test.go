@@ -8,7 +8,7 @@ import (
 )
 
 func TestPath(t *testing.T) {
-	path, err := NewPath("reg:db_vip_([a-z]{3})_([a-z]{3}).yaml")
+	path, err := New("reg:db_vip_([a-z]{3})_([a-z]{3}).yaml", true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -19,14 +19,16 @@ func TestPath(t *testing.T) {
 
 func TestABSDir(t *testing.T) {
 	// fmt.Println(abs_dir("/Users/ppll/go/workSpace/self-pkg/config/path/"))
-	fmt.Println(filepath.Join(Pwd, "../path", "/"))
+	fmt.Println(filepath.Join(pwd, "../path", "/"))
 	fmt.Println(abs_dir("."))
 	fmt.Println(abs_dir("./"))
 }
 
 func TestSplite(t *testing.T) {
 	pwd, err := os.Getwd()
-	t.Error(err)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Log(pwd)
 	t.Log(filepath.IsAbs(pwd))
 	t.Log(EqualDir("./", "."))

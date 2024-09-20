@@ -1,16 +1,19 @@
-// 该文件的意义，纯粹的就是因为go不支持方法泛型的一个包装
 package config
 
 import (
 	"reflect"
 	"sync/atomic"
 
-	"github.com/ndsky1003/config/checker"
-	"github.com/ndsky1003/config/item"
-	"github.com/ndsky1003/config/options"
-	"github.com/ndsky1003/config/path"
-	"github.com/ndsky1003/config/watcher"
+	"github.com/ndsky1003/config/v2/checker"
+	"github.com/ndsky1003/config/v2/item"
+	"github.com/ndsky1003/config/v2/options"
+	"github.com/ndsky1003/config/v2/path"
+	"github.com/ndsky1003/config/v2/watcher"
 )
+
+func Option() *options.Option {
+	return options.New()
+}
 
 func Stop() {
 	default_config_mgr.Stop()
@@ -29,7 +32,7 @@ func SetWatcher(w watcher.IWatcher) {
 }
 
 func Regist[T any](file_identifier string, fn item.LoadFunc[T], opts ...*options.Option) error {
-	path, err := path.NewPath(file_identifier)
+	path, err := path.New(file_identifier, false)
 	if err != nil {
 		return err
 	}
@@ -47,7 +50,7 @@ func Regist[T any](file_identifier string, fn item.LoadFunc[T], opts ...*options
 }
 
 func RegistByRegFunc[T any](file_identifier string, fn item.LoadRegFunc[T], opts ...*options.Option) error {
-	path, err := path.NewPath(file_identifier)
+	path, err := path.New(file_identifier, true)
 	if err != nil {
 		return err
 	}

@@ -4,5 +4,5 @@ package checker
 // buf 文件内容
 // err 返回值，当存在返回值的时候，自行处理
 type IChecker interface {
-	On(file_identifier1 string, fn func(buf []byte) error)
+	Regist(file_identifier1 string, fn func(buf []byte) error)
 }
