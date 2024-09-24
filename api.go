@@ -23,9 +23,9 @@ func SetChecker(c checker.IChecker) {
 	default_config_mgr.SetChecker(c)
 }
 
-func SetCheckerIdentifierFunc(f func(item.IItem) string) {
-	default_config_mgr.SetCheckerIdentifierFunc(f)
-}
+// func SetCheckerIdentifierFunc(f func(item.IItem) string) {
+// 	default_config_mgr.SetCheckerIdentifierFunc(f)
+// }
 
 func SetWatcher(w watcher.IWatcher) {
 	default_config_mgr.SetWatcher(w)
