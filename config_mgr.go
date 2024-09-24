@@ -24,7 +24,7 @@ type config_mgr struct {
 	items                  []item.IItem
 	watcher                watcher.IWatcher
 	checker                checker.IChecker
-	gen_checker_identifier func(string) string
+	gen_checker_identifier func(item.IItem) string
 }
 
 func New(watcher watcher.IWatcher) *config_mgr {
@@ -47,7 +47,7 @@ func (this *config_mgr) SetChecker(c checker.IChecker) {
 	this.checker = c
 }
 
-func (this *config_mgr) SetCheckerIdentifierFunc(f func(string) string) {
+func (this *config_mgr) SetCheckerIdentifierFunc(f func(item.IItem) string) {
 	this.gen_checker_identifier = f
 }
 
@@ -86,7 +86,7 @@ func (this *config_mgr) Regist(item item.IItem) error {
 		i := file_identifier
 		//设置替换
 		if this.gen_checker_identifier != nil {
-			i = this.gen_checker_identifier(i)
+			i = this.gen_checker_identifier(item)
 		}
 		// 每个item都有自己的检测标识,设置自己的替换
 		if item.Opts() != nil &&
