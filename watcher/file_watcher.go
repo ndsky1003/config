@@ -151,7 +151,7 @@ func (this *file_watcher) auto_load(done chan struct{}) {
 				event.Op&fsnotify.Create == fsnotify.Create {
 				fmt.Println("loadFile:", event.Name)
 				if err := this.load_file(event.Name); err != nil {
-					fmt.Printf("loadfile:err:%v\n", err)
+					fmt.Printf("loadfile:err:%v,name:%v\n", err, event.Name)
 				}
 			}
 		case err := <-watcher.Errors:

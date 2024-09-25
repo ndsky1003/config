@@ -24,7 +24,11 @@ type IItem interface {
 	Path() *path.Path
 	RT() reflect.Type
 	RVS() []*ItemValue
-	CheckBuf([]byte) error // buf检查
+	/**
+		* 第一个参数是正则匹配的结果
+	    * 检查buf
+	*/
+	CheckBuf([]string, []byte) error // buf检查
 	Opts() *options.Option
 }
 
@@ -59,11 +63,17 @@ func (this *Item[T]) Path() *path.Path {
 	return this.P
 }
 
-func (this *Item[T]) CheckBuf(buf []byte) error {
-	if f := this.Opts().CheckerFunc; f != nil {
+func (this *Item[T]) CheckBuf(math []string, buf []byte) error {
+	opt := this.Opts()
+	if f := opt.CheckerFunc; f != nil {
 		return (*f)(buf)
 	}
-	_, err := this.call_F([]string{}, buf)
+
+	if f := opt.CheckerMatchFunc; f != nil {
+		return (*f)(math, buf)
+	}
+
+	_, err := this.call_F(math, buf)
 	return err
 }
 
@@ -78,7 +88,6 @@ func (this *Item[T]) call_F(submath []string, buf []byte) (*T, error) {
 		return this.F_reg(submath, buf)
 	}
 	return nil, errors.New("no load func")
-
 }
 
 func (this *Item[T]) LoadFile(file_identifier string, buf []byte) error {

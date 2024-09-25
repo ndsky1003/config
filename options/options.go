@@ -4,8 +4,11 @@ package options
 type Option struct {
 	Len               *int
 	Cap               *int
-	CheckerIdentifier *string             //检测的标识可能需要随机兼容,所以自定义,不存在的话使用file_identifier
-	CheckerFunc       *func([]byte) error //注入一个检查器,优先使用这个,次要使用默认load函数
+	CheckerIdentifier *string //检测的标识可能需要随机兼容,所以自定义,不存在的话使用file_identifier
+
+	//下面2个方法有且只有一个函数生效
+	CheckerFunc      *func([]byte) error           //注入一个检查器,优先使用这个,次要使用默认load函数
+	CheckerMatchFunc *func([]string, []byte) error //注入一个具有匹配参数检查器,优先使用这个,次要使用默认load函数
 }
 
 func New() *Option {
@@ -27,8 +30,20 @@ func (this *Option) SetCap(i int) *Option {
 	return this
 }
 
-func (this *Option) SetCheckerFunc(Func func([]byte) error) *Option {
-	this.CheckerFunc = &Func
+func (this *Option) SetCheckerFunc(f func([]byte) error) *Option {
+	if f == nil {
+		return this
+	}
+	this.CheckerFunc = &f
+	return this
+}
+
+// 一般正则匹配的时候需要
+func (this *Option) SetCheckerMatchFunc(f func([]string, []byte) error) *Option {
+	if f == nil {
+		return this
+	}
+	this.CheckerMatchFunc = &f
 	return this
 }
 
@@ -52,6 +67,10 @@ func (this *Option) merge(opt *Option) {
 
 	if opt.CheckerFunc != nil {
 		this.CheckerFunc = opt.CheckerFunc
+	}
+
+	if opt.CheckerMatchFunc != nil {
+		this.CheckerMatchFunc = opt.CheckerMatchFunc
 	}
 
 }
